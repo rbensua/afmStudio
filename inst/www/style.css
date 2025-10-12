@@ -1,0 +1,37 @@
+/* Styles for afmStudio */
+
+  h2 {
+    font-weight: bold;
+  }
+
+.clear {
+  clear: both;
+}
+
+.highlight {
+  background-color: #edf389;
+}
+
+#ui_inputs .selectize-input, #ui_outputs .selectize-input  {
+max-height: 4rem;
+overflow-y: scroll;
+}
+
+.irs-grid-pol.small {
+  display: none;
+}
+
+.form-control {
+  height: 2.4rem;
+}
+
+.input-group-btn {
+  width: auto;
+}
+
+#plot_afm_tooltip{
+position: absolute;
+width: auto;
+z-index: 9999;
+padding: 0;
+}

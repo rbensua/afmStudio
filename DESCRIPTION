@@ -11,8 +11,9 @@ Authors@R: c(
   )
 Description: More about what it does (maybe more than one line).
     Continuation lines should be indented.
-License: What license is it under?
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 URL: https://github.com/rbensua/afmStudio
 BugReports: https://github.com/rbensua/afmStudio/issues
+RoxygenNote: 7.3.3

@@ -1,3 +1,3 @@
 # afmStudio 0.1.0
 
-* Initial CRAN submission.
+* First public release.
