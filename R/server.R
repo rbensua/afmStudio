@@ -126,7 +126,7 @@ server <- function(input, output, session) {
           fill = TRUE,
           selectInput("xaxis_data",label = "X axis",choices = c("Z", "Time", "Indentation")),
           selectInput("yaxis_data", label = "Y axis", choices = c("Force", "ForceCorrected", "Z")),
-          #checkboxInput("showCP", label = "Show Contact Point", value = FALSE),
+          checkboxInput("showCP", label = "Show Contact Point", value = FALSE)
           #checkboxInput("showDP", label = "Show Detach Point", value = FALSE),
           #checkboxInput("showZ0", label = "Show Z0 Point", value = FALSE)
         ),
@@ -144,6 +144,12 @@ server <- function(input, output, session) {
           fill = TRUE,
           selectInput("xaxis_prep",label = "X axis",choices = c("Z", "Time", "Indentation")),
           selectInput("yaxis_prep", label = "Y axis", choices = c("Force", "ForceCorrected", "Z")),
+          checkboxGroupInput("showPoints",
+                             label = NULL,
+                             choices = c("Contact point" = "CP",
+                                         "Detach point" = "DP",
+                                         "Zero-F point" = "Z0")
+                            )
           #checkboxInput("showCP", label = "Show Contact Point", value = FALSE),
           #checkboxInput("showDP", label = "Show Detach Point", value = FALSE),
           #checkboxInput("showZ0", label = "Show Z0 Point", value = FALSE)
@@ -177,9 +183,55 @@ server <- function(input, output, session) {
     if(length(s)){
       df <- afmdata[[s]]$data
 
-      df2 <- data.frame(X = df[,input$xaxis_data], Y = df[,input$yaxis_data], Segment = df[,"Segment"])
-      fig <- plot_ly(df2, x = ~X, y = ~Y, type = "scatter", mode = "lines",
+      df2 <- data.frame(X = df[,input$xaxis_prep], Y = df[,input$yaxis_prep], Segment = df[,"Segment"])
+      fig <- plot_ly(df2, x = ~X, y = ~Y, type = "scatter", mode = "markers",
                      color = ~Segment)
+      print(input$showPoints)
+
+      line_specs <- list(
+        CP = list(pos = afmdata[[s]]$CP$CP, color = "black", label = "CP"),
+        DP = list(pos = afmdata[[s]]$DP$DP, color = "black", label = "DP"),
+        Z0 = list(pos = afmdata[[s]]$Slopes$Z0Point, color = "black", label = "Z0")
+      )
+
+      shapes = list()
+
+      if(!is.null(input$showPoints)){
+        for (line_id in input$showPoints){
+          spec <- line_specs[[line_id]]
+
+          shapes <- append(shapes, list(
+            list(
+              type = "line",
+              x0 = spec$pos,
+              x1 = spec$pos,
+              y0 = 0,
+              y1 = 1,
+              yref = "paper",
+              line = list(color = spec$color, dash = "dash", width =2)
+            )
+          ))
+                  }
+      }
+
+      # Add shapes and annotations
+      fig <- layout(fig, shapes = shapes)#, annotations = annotations)
+
+
+
+      if(input$showCP){
+        if ("CP" %in% names(afmdata[[s]])){
+          fig <- fig |> layout(shapes = list(vline(afmdata[[s]]$CP$CP)))
+        }else{
+          showModal(modalDialog(
+            title = "No contact point found!",
+            "Run Contact Point Estimation First.",
+            easyClose = TRUE
+          ))
+        }
+      }
+
+
       fig
     }else{
       NULL
