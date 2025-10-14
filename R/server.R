@@ -1,8 +1,4 @@
-#' @import reactable
-#' @import ggplot2
-NULL
-
-#' Define server logic for pioneeR
+#' Server logic for afmStudio
 #' @noRd
 server <- function(input, output, session) {
 
