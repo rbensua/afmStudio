@@ -316,6 +316,102 @@ server <- function(input, output, session) {
 
   })
 
+  ## ---- Baseline correction ----
+
+  observeEvent(input$BC_go,{
+
+    zapp <- NULL
+    zret <- NULL
+
+    if(!is.na(input$zapp)){
+      zapp <- input$zapp
+    }
+
+    if(!is.na(input$zret)){
+      zret <- input$zret
+    }
+
+    datatemp <- afmdata()
+    showModal(modalDialog(
+      title = "Processing...",
+      tagList(
+        h4("Please wait..."),
+        div(style="text-align:center;",
+            # Simple CSS spinner
+            tags$div(class="lds-dual-ring")
+        )
+      ),
+      footer = NULL,
+      easyClose = FALSE
+    ))
+
+    BC <- afmBaselineCorrection(datatemp,
+                                ZPointApp = zapp,
+                                ZPointRet = zret,
+                                fitpause = input$bc_fitpause,
+                                vsTime = input$vsTime,
+                                sinusoidal = input$sinusoidal)
+
+     removeModal()
+    showModal(modalDialog(
+      title = "Done!",
+      "All files processed successfully.",
+      easyClose = TRUE
+    ))
+
+    afmdata(BC)
+
+
+  })
+
+  ## ---- Zero-force point and slopes ----
+
+
+  observeEvent(input$Z0_go,{
+    datatemp <- afmdata()
+
+    # showModal(modalDialog(
+    #   title = "Processing...",
+    #   tagList(
+    #     h4("Please wait..."),
+    #     div(style="text-align:center;",
+    #         # Simple CSS spinner
+    #         tags$div(class="lds-dual-ring")
+    #     )
+    #   ),
+    #   footer = NULL,
+    #   easyClose = FALSE
+    # ))
+
+    Z0Slope <- afmZeroPointSlope(datatemp,
+                                 fstar = input$fstar,
+                                 segment = input$segment_z0)
+
+    #removeModal()
+    showModal(modalDialog(
+      title = "Done!",
+      "All files processed successfully.",
+      easyClose = TRUE
+    ))
+
+    afmdata(Z0Slope)
+  })
+
+  ## ---- Indentation ----
+
+  observeEvent(input$Indent_go,{
+
+    datatemp <- afmdata()
+    Indentation <- afmIndentation(datatemp)
+    afmdata(Indentation)
+    showModal(modalDialog(
+      title = "Done!",
+      "All files processed successfully.",
+      easyClose = TRUE
+    ))
+
+  })
+
 
 }
 
