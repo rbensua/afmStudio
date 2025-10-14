@@ -278,6 +278,48 @@ server <- function(input, output, session) {
 
   })
 
+  ## ---- Detach point estimation ----
+
+  observeEvent(input$DP_go,{
+    mul1 <- input$mul1_dp
+    mul2 <- input$mul2_dp
+    width <- input$width_dp
+    LOESS <- !is.null(input$loess_dp)
+    Delta <- !is.null(input$delta_dp)
+    datatemp <- afmdata()
+
+    showModal(modalDialog(
+      title = "Processing...",
+      tagList(
+        h4("Please wait..."),
+        div(style="text-align:center;",
+            # Simple CSS spinner
+            tags$div(class="lds-dual-ring")
+        )
+      ),
+      footer = NULL,
+      easyClose = FALSE
+    ))
+
+    DP <- afmDetachPoint(datatemp,
+                         width = width,
+                         mul1 = mul1,
+                         mul2 = mul2,
+                         Delta = Delta,
+                         loessSmooth = LOESS)
+
+    removeModal()
+
+    showModal(modalDialog(
+      title = "Done!",
+      "All files processed successfully.",
+      easyClose = TRUE
+    ))
+
+    afmdata(DP)
+
+  })
+
 
 }
 
