@@ -38,6 +38,9 @@ server <- function(input, output, session) {
     filename = NULL
   )
 
+  # Reactive value for filter mode in plots
+  filter_mode <- reactiveVal(FALSE)
+
 
 
   # ---- Data ----
@@ -115,6 +118,8 @@ server <- function(input, output, session) {
       }
   })
 
+  # Render plot widgets ----
+    ## Preview data Tab plot ----
   output$data_preview_data <- renderUI({
     if(!is.null(afmdata())){
       card(
@@ -122,7 +127,10 @@ server <- function(input, output, session) {
           fill = TRUE,
           selectInput("xaxis_data",label = "X axis",choices = c("Z", "Time", "Indentation")),
           selectInput("yaxis_data", label = "Y axis", choices = c("Force", "ForceCorrected", "Z")),
-          checkboxInput("showCP", label = "Show Contact Point", value = FALSE)
+          uiOutput("filter_button_ui"),
+          br(), br(),
+          actionButton("reset_data", "Reset data", class = "btn-warning")
+          #checkboxInput("showCP", label = "Show Contact Point", value = FALSE)
           #checkboxInput("showDP", label = "Show Detach Point", value = FALSE),
           #checkboxInput("showZ0", label = "Show Z0 Point", value = FALSE)
         ),
@@ -132,6 +140,8 @@ server <- function(input, output, session) {
       NULL
     }
   })
+
+  ## Preprocessing Tab plot ----
 
   output$data_preview_prep <- renderUI({
     if(!is.null(afmdata())){
@@ -158,36 +168,143 @@ server <- function(input, output, session) {
   })
 
   # Plot selected curve ----
+
+  ## Data preview tab ----
+  output$filter_button_ui <- renderUI({
+    if (filter_mode()) {
+      actionButton("filter_mode", "Back to Zoom Mode", class = "btn-success")
+    } else {
+      actionButton("filter_mode", "Enable Filter Mode", class = "btn-primary")
+    }
+  })
+
+  # Toggle filter mode
+  observeEvent(input$filter_mode, {
+    filter_mode(!filter_mode())
+  })
+
+  # Reset data
+  observeEvent(input$reset_data, {
+    df(df_orig)
+  })
+
   output$plt_data <- renderPlotly({
     s <- getReactableState("curves_list_data", "selected")
     afmdata <- isolate(afmdata())
+    print(filter_mode())
+    mode <- if (filter_mode()) "select" else "zoom"
+    print(mode)
+    fill_colors <- c(
+      approach = "#1f77b4",
+      pause = "#ff7f0e",
+      retract = "#2ca02c"
+    )
     if(length(s)){
       df <- afmdata[[s]]$data
 
-      df2 <- data.frame(X = df[,input$xaxis_data], Y = df[,input$yaxis_data], Segment = df[,"Segment"])
-      fig <- plot_ly(df2, x = ~X, y = ~Y, type = "scatter", mode = "lines",
-                     color = ~Segment)
+      df2 <- data.frame(X = df[,input$xaxis_data],
+                        Y = df[,input$yaxis_data],
+                        Segment = df[,"Segment"])
+      print(mode)
+
+      fig <- plot_ly(df2,
+                     x = ~X,
+                     y = ~Y,
+                     type = "scatter",
+                     mode = "lines+markers",
+                     marker = list(opacity = 0, size = 8),
+                     color = ~Segment,
+                     colors = fill_colors
+      ) |> layout(dragmode = mode)
+
       fig
     }else{
       NULL
     }
   })
 
+  # Observe selected points (only in filter mode)
+  observeEvent(event_data("plotly_selected"), {
+    print(event_data("plotly_selected"))
+    req(filter_mode())
+
+    sel <- event_data("plotly_selected")
+    print(sel)
+    if (!is.null(sel) && nrow(sel) > 0) {
+      n_points <- nrow(sel)
+
+      # Ask for confirmation
+      showModal(modalDialog(
+        title = "Confirm data filtering",
+        paste("You selected", n_points, "points. Do you want to remove them?"),
+        footer = tagList(
+          modalButton("Cancel"),
+          actionButton("confirm_prune", "Yes, remove", class = "btn-danger")
+        )
+      ))
+
+      # Temporarily store selection in session
+      session$userData$selected_ids <- sel$key
+      print(session$userData$selected_ids)
+    }
+  })
+
+  # Confirm pruning
+  observeEvent(input$confirm_prune, {
+    removeModal()
+    s <- getReactableState("curves_list_data", "selected")
+    afmdata <- isolate(afmdata())
+    df <- afmdata[[s]]$data
+    ids_to_remove <- session$userData$selected_ids
+    print(ids_to_remove)
+    if (!is.null(ids_to_remove)) {
+      new_df <- df %>% filter(!id %in% ids_to_remove)
+      afmdata[[s]]$data <- (new_df)
+      session$userData$selected_ids <- NULL
+    }
+    afmdata(afmdata)
+  })
+
+
+
+  ## Data preprocessing tab ----
   output$plt_prep <- renderPlotly({
     s <- getReactableState("curves_list_prep", "selected")
     afmdata <- isolate(afmdata())
+    # Define fill colors for segments
+    fill_colors <- c(
+      approach = "#1f77b4",
+      pause = "#ff7f0e",
+      retract = "#2ca02c"
+    )
     if(length(s)){
       df <- afmdata[[s]]$data
 
-      df2 <- data.frame(X = df[,input$xaxis_prep], Y = df[,input$yaxis_prep], Segment = df[,"Segment"])
-      fig <- plot_ly(df2, x = ~X, y = ~Y, type = "scatter", mode = "markers",
-                     color = ~Segment)
+      df2 <- data.frame(X = df[,input$xaxis_prep], Y = df[,input$yaxis_prep],
+                        Segment = df[,"Segment"])
+      fig <- plot_ly(
+        df2,
+        type = "scatter",
+        mode = "markers",
+        x = ~X,
+        y = ~Y,
+        color = ~Segment,
+        colors = fill_colors,
+        marker = list(
+          opacity = 0.6,
+          line = list(
+            color = "black",
+            width = .5
+          )
+        )
+      )
+
       print(input$showPoints)
 
       line_specs <- list(
-        CP = list(pos = afmdata[[s]]$CP$CP, color = "black", label = "CP"),
-        DP = list(pos = afmdata[[s]]$DP$DP, color = "black", label = "DP"),
-        Z0 = list(pos = afmdata[[s]]$Slopes$Z0Point, color = "black", label = "Z0")
+        CP = list(pos = afmdata[[s]]$CP$CP, color = fill_colors["approach"], label = "CP"),
+        DP = list(pos = afmdata[[s]]$DP$DP, color = fill_colors["retract"], label = "DP"),
+        Z0 = list(pos = afmdata[[s]]$Slopes$Z0Point, color = fill_colors["approach"], label = "Z0")
       )
 
       shapes = list()
@@ -332,18 +449,18 @@ server <- function(input, output, session) {
     }
 
     datatemp <- afmdata()
-    showModal(modalDialog(
-      title = "Processing...",
-      tagList(
-        h4("Please wait..."),
-        div(style="text-align:center;",
-            # Simple CSS spinner
-            tags$div(class="lds-dual-ring")
-        )
-      ),
-      footer = NULL,
-      easyClose = FALSE
-    ))
+    # showModal(modalDialog(
+    #   title = "Processing...",
+    #   tagList(
+    #     h4("Please wait..."),
+    #     div(style="text-align:center;",
+    #         # Simple CSS spinner
+    #         tags$div(class="lds-dual-ring")
+    #     )
+    #   ),
+    #   footer = NULL,
+    #   easyClose = FALSE
+    # ))
 
     BC <- afmBaselineCorrection(datatemp,
                                 ZPointApp = zapp,
@@ -352,7 +469,7 @@ server <- function(input, output, session) {
                                 vsTime = input$vsTime,
                                 sinusoidal = input$sinusoidal)
 
-     removeModal()
+    # removeModal()
     showModal(modalDialog(
       title = "Done!",
       "All files processed successfully.",
