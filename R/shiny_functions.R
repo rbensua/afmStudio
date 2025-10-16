@@ -8,7 +8,6 @@
 #' @import afmToolkit
 #' @import shinyFiles
 #' @import plotly
-NULL
 
 #' Function to add JS and CSS dependencies to the app
 #' @noRd
