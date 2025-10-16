@@ -27,15 +27,15 @@ ui <- function(request) {
     theme = do.call(bslib::bs_theme, theme_args),
     fluid = TRUE,
     # Add custom CSS
-    header = afmstudio_scripts(),
-
-    tags$style(HTML("
+    header = list(
+      afmstudio_scripts(),
+      tags$style(HTML("
     #dir_select_btn {
       text-align: left !important;
       padding-left: 10px; /* optional: to make the text visually aligned */
     }
   ")),
-    tags$style(HTML("
+      tags$style(HTML("
    .lds-dual-ring {
   display: inline-block;
   width: 64px;
@@ -57,6 +57,69 @@ ui <- function(request) {
   100% { transform: rotate(360deg); }
 }
 ")),
+      header = list(
+        # Your htmlDependency() calls here if needed...
+        tags$style(HTML("
+    /* Base slider line (track) */
+    .irs--shiny .irs-line {
+      top: 25px;
+      height: 6px;
+      background-color: #e5e7eb; /* light gray */
+      border: none;
+      border-radius: 3px;
+    }
+
+    /* Filled portion (between min and current value) */
+    .irs--shiny .irs-bar {
+      top: 25px;
+      height: 6px;
+      background-color: #0d6efd; /* Bootstrap primary blue */
+      border-radius: 3px;
+      transition: background-color 0.3s ease;
+    }
+
+    /* Handle (draggable circle) */
+    .irs--shiny .irs-handle {
+      top: 18px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid #0d6efd;
+      background-color: white;
+      box-shadow: 0 0 4px rgba(0,0,0,0.15);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    /* Hover effect for handle */
+    .irs--shiny .irs-handle:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 6px rgba(13,110,253,0.4);
+    }
+
+    /* Label showing current value */
+    .irs--shiny .irs-single {
+      background-color: #0d6efd;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 12px;
+      top: -5px;
+    }
+
+    /* Grid and tick labels (optional cleanup) */
+    .irs--shiny .irs-grid-text {
+      color: #6b7280; /* medium gray */
+      font-size: 11px;
+    }
+
+    .irs--shiny .irs-min,
+    .irs--shiny .irs-max {
+      color: #9ca3af; /* lighter gray */
+      font-size: 11px;
+    }
+  "))
+      )
+
+    ),
 
     tabPanel(
       'Data', value = 'afmstudio_upload',
@@ -90,7 +153,7 @@ ui <- function(request) {
       layout_sidebar(
         ## --- Preprocessing sidebar ----
         sidebar = sidebar(
-          width = sidebar_width, gap = 0,
+          width = sidebar_width + 100, gap = 0,
           accordion(multiple = FALSE,
                     ### Contact point --------------------
                     accordion_panel(

@@ -127,9 +127,8 @@ server <- function(input, output, session) {
           fill = TRUE,
           selectInput("xaxis_data",label = "X axis",choices = c("Z", "Time", "Indentation")),
           selectInput("yaxis_data", label = "Y axis", choices = c("Force", "ForceCorrected", "Z")),
-          uiOutput("filter_button_ui"),
-          br(), br(),
-          actionButton("reset_data", "Reset data", class = "btn-warning")
+          #uiOutput("filter_button_ui"),
+          #actionButton("reset_data", "Reset data", class = "btn-warning")
           #checkboxInput("showCP", label = "Show Contact Point", value = FALSE)
           #checkboxInput("showDP", label = "Show Detach Point", value = FALSE),
           #checkboxInput("showZ0", label = "Show Z0 Point", value = FALSE)
@@ -201,7 +200,7 @@ server <- function(input, output, session) {
     )
     if(length(s)){
       df <- afmdata[[s]]$data
-
+      df <- df
       df2 <- data.frame(X = df[,input$xaxis_data],
                         Y = df[,input$yaxis_data],
                         Segment = df[,"Segment"])
@@ -224,46 +223,46 @@ server <- function(input, output, session) {
   })
 
   # Observe selected points (only in filter mode)
-  observeEvent(event_data("plotly_selected"), {
-    print(event_data("plotly_selected"))
-    req(filter_mode())
-
-    sel <- event_data("plotly_selected")
-    print(sel)
-    if (!is.null(sel) && nrow(sel) > 0) {
-      n_points <- nrow(sel)
-
-      # Ask for confirmation
-      showModal(modalDialog(
-        title = "Confirm data filtering",
-        paste("You selected", n_points, "points. Do you want to remove them?"),
-        footer = tagList(
-          modalButton("Cancel"),
-          actionButton("confirm_prune", "Yes, remove", class = "btn-danger")
-        )
-      ))
-
-      # Temporarily store selection in session
-      session$userData$selected_ids <- sel$key
-      print(session$userData$selected_ids)
-    }
-  })
+  # observeEvent(event_data("plotly_selected"), {
+  #   print(event_data("plotly_selected"))
+  #   req(filter_mode())
+  #
+  #   sel <- event_data("plotly_selected")
+  #   print(sel)
+  #   if (!is.null(sel) && nrow(sel) > 0) {
+  #     n_points <- nrow(sel)
+  #
+  #     # Ask for confirmation
+  #     showModal(modalDialog(
+  #       title = "Confirm data filtering",
+  #       paste("You selected", n_points, "points. Do you want to remove them?"),
+  #       footer = tagList(
+  #         modalButton("Cancel"),
+  #         actionButton("confirm_prune", "Yes, remove", class = "btn-danger")
+  #       )
+  #     ))
+  #
+  #     # Temporarily store selection in session
+  #     session$userData$selected_ids <- sel$key
+  #     print(session$userData$selected_ids)
+  #   }
+  # })
 
   # Confirm pruning
-  observeEvent(input$confirm_prune, {
-    removeModal()
-    s <- getReactableState("curves_list_data", "selected")
-    afmdata <- isolate(afmdata())
-    df <- afmdata[[s]]$data
-    ids_to_remove <- session$userData$selected_ids
-    print(ids_to_remove)
-    if (!is.null(ids_to_remove)) {
-      new_df <- df %>% filter(!id %in% ids_to_remove)
-      afmdata[[s]]$data <- (new_df)
-      session$userData$selected_ids <- NULL
-    }
-    afmdata(afmdata)
-  })
+  # observeEvent(input$confirm_prune, {
+  #   removeModal()
+  #   s <- getReactableState("curves_list_data", "selected")
+  #   afmdata <- isolate(afmdata())
+  #   df <- afmdata[[s]]$data
+  #   ids_to_remove <- session$userData$selected_ids
+  #   print(ids_to_remove)
+  #   if (!is.null(ids_to_remove)) {
+  #     new_df <- df %>% filter(!id %in% ids_to_remove)
+  #     afmdata[[s]]$data <- (new_df)
+  #     session$userData$selected_ids <- NULL
+  #   }
+  #   afmdata(afmdata)
+  # })
 
 
 
@@ -299,7 +298,6 @@ server <- function(input, output, session) {
         )
       )
 
-      print(input$showPoints)
 
       line_specs <- list(
         CP = list(pos = afmdata[[s]]$CP$CP, color = fill_colors["approach"], label = "CP"),
@@ -308,7 +306,7 @@ server <- function(input, output, session) {
       )
 
       shapes = list()
-
+      print(input$showPoints)
       if(!is.null(input$showPoints)){
         for (line_id in input$showPoints){
           spec <- line_specs[[line_id]]
@@ -329,21 +327,6 @@ server <- function(input, output, session) {
 
       # Add shapes and annotations
       fig <- layout(fig, shapes = shapes)#, annotations = annotations)
-
-
-
-      if(input$showCP){
-        if ("CP" %in% names(afmdata[[s]])){
-          fig <- fig |> layout(shapes = list(vline(afmdata[[s]]$CP$CP)))
-        }else{
-          showModal(modalDialog(
-            title = "No contact point found!",
-            "Run Contact Point Estimation First.",
-            easyClose = TRUE
-          ))
-        }
-      }
-
 
       fig
     }else{

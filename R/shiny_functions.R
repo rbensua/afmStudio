@@ -1,6 +1,5 @@
 #' @import shiny
 #' @import bslib
-#' @import ggplot2
 #' @import markdown
 #' @import reactable
 #' @import readxl
@@ -8,6 +7,8 @@
 #' @import afmToolkit
 #' @import shinyFiles
 #' @import plotly
+#' @import dplyr
+NULL
 
 #' Function to add JS and CSS dependencies to the app
 #' @noRd
